@@ -1,0 +1,239 @@
+- opencv 4.2 based on c++
+
+0. Start
+
+using namespace cv;
+using namespace std; // for convenience
+img = imread("test.bmp"); // read img
+img = imread("test.bmp", IMREAD_GRAYSCALE); // convert to grayscale and read
+img = imread("test.bmp", IMREAD_COLOR); // convert to color and read
+img = imread("test.bmp", IMREAD_REDUCED_GRAYSCALE_2); // convert to grayscale and read to 1/2 size
+img = imread("test.bmp", IMREAD_REDUCED_COLOR_2); // convert to color and read to 1/2 size
+namedWindow("window_name", WINDOW_NORMAL); //
+destroyWindow() 
+destroyAllWindows()
+moveWindow(name, int x, int y)
+resizeWindow(name, width, height)
+imshow(name, mat) // print img
+waitKey(int delay) // press keyboard for delay
+
+
+
+1. various data type class
+
+1-1. Point_ class : has x,y orientation
+Point pt; pt.x = 100; pt.y = 150;
+Point pt1(100,150);
+Point pt2 = pt + pt1; // then, result of pt2 is (200,300) you can use 'cout << pt2;' to print the result
+
+1-2. Size_ class : has width, height
+Size sz1, sz2(10,20); // then, sz1 = [ 0 x 0 ], sz2 = [ 10 x 20 ]
+sz1.width = 5; sz1.height = 10; // sz1 = [ 5 x 10]
+Size sz3 = sz1 + sz2;
+Size sz4 = sz1 * 2;
+int area = sz4.area(); // area = 200, cout possible
+
+1-3 Rect_ class : has x,y orientation & width, height (Point_ + Size_ = Rect_)
+Rect a(10, 10, 50, 100); // a rect is [50x100] size at (10,10)
+Rect b; // (0, 0, 0, 0)
+Rect c = b + Size(50,70); // c : [50x70] at (0,0)
+Rect d = c + Point(30,40); // d : [50x70] at (30,40)
+Rect e = c & d; // overlapped area. e : [20x30] at (30,40)
+Rect f = c | d; // both area. f : [80x110] at (0,0)
+
+1-4 RotatedRect class : rotated result of Rect_ class
+RotatedRect a(Point2f(20,30), Size2f(40,50), 45.f); // a : [40x50] at (20,30) is rotated 45degree clockwise
+Point2f pts[4]; a.points(pts); // 4 points of 'a' is saved at pts array
+Rect br = a.boundingRect(); // get boudingbox. if you want to get bounding box by real number location, use RotatedRect::boundingRect2f()
+
+1-5 Range class : has start and end
+Range a(0,10);
+Range::empty();
+Range::all();
+
+1-6 String class : you can use string class at OpenCV
+
+1-7 Mat class : matrix (most used at OpenCV), has depth, channel, type (grayscale, binary = 1 channel & BGR = 3 channel)
+Mat::Mat(int rows, int cols, int type);	
+ex> Mat img(480, 640, CV_8UC1); // unsigned char, 1-channel
+Mat::Mat(Size size, int type);
+ex> Mat img1(Size(640,480), CV_8UC3);
+Mat::Mat(int rows, int cols, int type, const Scalar& s);
+Mat::Mat(Size size, int type, const Scalar& s);
+ex> Mat img2(480,640, CV_8UC1, Scalar(255));
+ex> Mat img3(480,640, CV_8UC3, Scalar(0, 255, 0));
+static MatExpr Mat::zeros(int rows, int cols, int type);
+static MatExpr Mat::zeros(Size size, int type); // default : 0
+ex> Mat img4 = Mat::zeros(3,3,CV_32SC1); // (3x3) 0's matrix
+[++ zeros : default 0 matrix / ones : default 1 matrix / eye : default unit matrix]
+
+1-8 copy matrix (= copy img)
+Mat img1;
+img2 = img1; // shallow copy (even if you change img2, img1 is unchanged)
+img3 = img1.clone();
+Mat img4;
+img1.copyTo(img4); // deep copy (if you change img3 or img4, img1 is changed)
+img.setTo(Scalar(0,255,255); // img's color is changed to yellow
+you can use Range, Rect... to cut, copy, change any part of the original image
+**range of interest (roi) - search at google!
+img = ~img; // reverse the img
+Mat::rowRange(int a, int b);
+Mat::rowRange(Range c);
+Mat::colRange(int a, int b);
+Mat::colRange(Range c);
+Mat::row(int a);
+Mat::col(int b); // shallow copy for the part
+
+1-9 way to element access of matrix
+Mat::at(int x, int y)
+Mat::ptr(int y)
+- return of matrix
+Mat::channels() const; // return channels
+Mat::depth() const; // return depth
+Mat::empty() const;
+Mat::size() const;
+Mat::type() const;
+
+1-10 to convert size or type
+Mat::convertTo(OutputArray m, int rtype, double alpha = 1, double beta = 0) const; // change type & change whole elements (elements * alpha + beta)
+Mat::reshape(int channel, int rows) const; // change only shape, not whole elements. so number of elements are unchanged ([3x4]->[2x6])
+Mat::resize(size_t sz);
+Mat::resize(size_t sz, const Scalar& s); // sz : new rows, s : new rows' default element
+mat1.push_back(mat2); // add elements of mat2 to mat1 & pop_back() is opposite of push_back()
+
+1-11 Vec class
+to change color value of the pixel
+Vec3b p1, p2(0,0,255);
+p1.val[0]=100;
+
+1-12 Scalar class
+Scalar(int brightness); // grayscale img
+Scalar(int blue, int green, int red); // color img
+Scalar(int blue, int green, int red, int transparency); // add transparency
+
+1-13 InputArray, OutputArray class : to get matrix as a input or output source
+Mat _InputArray::getMat(int idx=-1) const; // idx<0 : whole matrix
+ex>
+void InputArrayOp()
+{
+	uchar data1[] = {1,2,3,4,5,6};
+	Mat mat1(2,3,CV_8U,data1);
+	printMat(mat1);
+	vector<float> vec1={1.2f, 3.4f, -2.1f};
+	printMat(vec1);
+}
+void printMat(InputArray _mat)
+{
+	Mat mat = _mat.getMat();
+	cout << mat << endl;
+}
+
+
+
+
+
+2. Major OpenCV function
+
+
+2-1. treat camera and video file
+
+[ Use Camera ]
+a)
+VideoCapture cap; // capture a frame
+cap.open(0); // open the frame, 0:basic camera
+b)
+VideoCapture cap(0); // same result with a)
+
+VideoCapture::isOpened() // bool
+ex>
+if (!cap.isOpened()){
+	cerr << "Camera open failed!" << endl; // cerr means cout error (same function with cout)
+	return -1;
+}
+ex>
+Mat frame;
+while (true){ // VideoCapture is capture one frame of the video. so use 'while' loop to stream the video.
+	cap >> frame;
+	imshow("frame",frame);
+	waitKey(10); // change frame 10ms after key press 
+}
+ex>
+Mat frame;
+while(1){
+	cap>>frame;
+	if(frame.empty())
+		break;
+	imshow("frame",frame);
+	if (waitKey(10) == 27) // integer 27 means 'esc' key in keyboard. and delay is 10ms.
+		break;
+}
+
+[ Use Video File ]
+
+a)
+VideoCapture cap;
+cap.open("video.mp4"); // open video file
+b)
+VideoCapture cap("video.mp4"); // same result with a)
+
+cap.get(CAP_PROP_FPS); // fps
+cvRound(1000/fps); // term between frames
+cap.get(CAP_PROP_FRAME_WIDTH) // video's width
+cap.get(CAP_PROP_FRAME_HEIGHT) // video's height
+cap.get(CAP_PROP_FRAME_COUNT) // number of video's frames
+
++) to save video file, use VideoWriter
+
+2-2. drawing in OpenCV
+
+line(img, Point(start_x,start_y), Point(end_x,end_y), Scalar(r,g,b), int thickness, int line_type, int shift);
+arrowedLine(img, Point(start_x,start_y), Point(end_x,end_y), Scalar(255,255,0), int thickness, int line_type, int shift, double tipLength) // tipLength = size of arrow
+drawMarker(img, Point(x,y), Scalar(r,g,b), int markerType, int markerSize, int thickness, int line_type);
+markerType : MARKER_SQUARE, MARKER_TRIANGLE_UP, MARKER_TRIANGLE_DOWN, MARKER_DIAMOND, MARKER_STAR, ...
+
+rectangle(img, Point(x,y), Point(x,y), Scalar(b,g,r), int thickness, int lineTpe, int shift);
+rectangle(img, Rect rec, Scalar(b,g,r), int thickness, int lineTpe, int shift);
+circle(img, Point center, int radius, Scalar(b,g,r), int thickness, int lineType, int shift);
+ellipse(img, Point center, Size axes, double angle, double startangle, double endangle, Scalar, thickness, line_type, shift);
+polylines(img, pts, bool isClosed, Scalar, thickness, lineType, shift); // pts is vector<Point>, if isClosed==1 : connect begin(pts) and end(pts)
+
+putText(img, "text", Point(x,y), fontFace, fontScale, Scalar color, thickness, lineType, shift); // getTextSize to Proper position alignment
++) mouse, keyboard can be used as input in OpenCV
++) can use trackbar to add GUI in OpenCV
++) can use FileStorage class to utilize data file
+
+2-3. Useful things
+
+- Mask
+Mat::setTo(Scalar(b,g,r), input); // set mask's color
+Mat::copyTo(outputimg, mask);
+input.copyTo(outputimg, mask); // input, output : color(3 channels), mask : grayscale(1 channel), Copy only the non-zero mask part
+
+sum() // sum of matrix of img (each channel)
+mean() // mean of matrix of img (each channel)
+minMaxLoc() // get min and max point of matrix
+normalize() // standardize matrix value. (useful to change real number to integer)
+cvRound() // rounds (math)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

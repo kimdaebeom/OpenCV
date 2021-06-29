@@ -1,0 +1,3 @@
+/home/bb/opencv_cpp/CMakeFiles/rebuild_cache.dir
+/home/bb/opencv_cpp/CMakeFiles/OpenCV_test.dir
+/home/bb/opencv_cpp/CMakeFiles/edit_cache.dir
